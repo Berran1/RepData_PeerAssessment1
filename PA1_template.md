@@ -5,7 +5,8 @@ An investigation of a dataset of personal fitness monitoring data: steps taken
 
 ## Loading and preprocessing the data
 The data are available in a zip file in this repo. 
-```{r loadprocess}
+
+```r
 ## Load required packages
 library(knitr)
 library(ggplot2)
@@ -24,12 +25,14 @@ activity$Starttime <- format(as.POSIXct(activity$datetime),format = "%H:%M")
 
 ## What is mean total number of steps taken per day?
 Before starting this exploratory analysis I change the options to show numbers to nearest step, and not in scientific notation. 
-```{r setup}
+
+```r
 options(scipen = 1, digits = 0)
 ```
 The total steps per day are plotted as a histogram (missing data ignored) to give a sense of the range of daily steps.
 
-```{r dailysums}
+
+```r
 daysums <- aggregate(steps ~ date, data = activity, sum)
 meanday <- mean(daysums$steps)
 medianday <- median(daysums$steps)
@@ -40,12 +43,13 @@ abline(v = meanday, lwd = 3, lty = 1, col = "blue")
 abline(v = medianday, lwd = 3, lty = 3, col = "red")
 text(14000, 28.5, paste("mean =", round(meanday, digits = 0)), cex = 0.7, col = "blue")
 text(7000, 28.5, paste("median =", medianday), cex = 0.7, col = "red")
-
 ```
 
-* The mean daily steps taken (ignoring missing values) is `r meanday`.
+![plot of chunk dailysums](figure/dailysums.png) 
 
-* The median daily steps taken (ignoring missing values) is `r medianday`.
+* The mean daily steps taken (ignoring missing values) is 10766.
+
+* The median daily steps taken (ignoring missing values) is 10765.
 
 ## What is the average daily activity pattern?
 
@@ -53,17 +57,23 @@ The average step activity in each 5-minute interval over the course of a 24-hour
 
 Unlike the instructor's plot example for part 5, I've plotted intervals as time rather than integer, because this makes much more sense, and the other way was annoying because time isn't decimal. 
 
-```{r IntervalAves}
+
+```r
 timeMean <- aggregate(steps ~ Starttime, data = activity, mean)
 ##Get back to a time-date format
 timeMean$time <- as.POSIXct(timeMean$Starttime, format = "%H:%M")
 
 plot(timeMean$time, timeMean$steps, type = "l", xlab = "Time", ylab = "Average Steps", main = "Average steps per 5-minute interval", lwd = 3)
+```
+
+![plot of chunk IntervalAves](figure/IntervalAves.png) 
+
+```r
 ## find 5-min interval with max average
 startmax <- timeMean$Starttime[which.max(timeMean$steps)]
 stopmax <- timeMean$Starttime[which.max(timeMean$steps)+1]
 ```
-The maximum average activity occurs in the 5-minute interval `r startmax` to `r stopmax`.
+The maximum average activity occurs in the 5-minute interval 08:35 to 08:40.
 
 
 
@@ -71,20 +81,40 @@ The maximum average activity occurs in the 5-minute interval `r startmax` to `r 
 ## Imputing missing values
 
 1. Calculation of number of missing values.
-```{r}
+
+```r
 sum(is.na(activity))
+```
+
+```
+## [1] 2304
+```
+
+```r
 sum(is.na(activity$steps))
+```
+
+```
+## [1] 2304
+```
+
+```r
 percentMissing <- sum(is.na(activity))/nrow(activity)    
 ```
-The two sums are equal, showing that the missing values are all in the `activity$steps` column and that there are `r sum(is.na(activity$steps))` missing. This is equivalent to `r percentMissing*100`% missing. 
+The two sums are equal, showing that the missing values are all in the `activity$steps` column and that there are 2304 missing. This is equivalent to 13% missing. 
 
 2. Strategy for missing values
 To work out how the NAs are distributed, I calculated how `NA`s are distributed by date.
-```{r results="asis"}
+
+```r
 missings <- function(x) sum(is.na(x))
 miss2 <- tapply(activity$steps, activity$date, missings)
 table(miss2)
 ```
+
+miss2
+  0 288 
+ 53   8 
 So there are 8 completely missing days and no partly missing days. Probably a software effect as it seems unlikely a person with fitness tracker would have stopped/started it at exactly midnight! 
 
 So we can't impute from neighbouring intervals OR from daily average, so the best (easy) option is to use the average for that interval, similar to previous section. 
@@ -94,7 +124,8 @@ I looked into whether `mean` or `median` would be better, and found a [handy inv
 
 Here a `for` loop is used to check if a steps value is missing, find the average for the relevant time interval, and replace the `NA` with the mean. It's cached for time efficiency.
 
-```{r imputing, cache=TRUE}
+
+```r
 activityFilled <- activity
 
 for(i in seq_along(activityFilled$steps)) {
@@ -108,10 +139,15 @@ for(i in seq_along(activityFilled$steps)) {
 sum(is.na(activityFilled))
 ```
 
+```
+## [1] 0
+```
+
 4. A histogram analogous to part 1 but with missing values imputed. 
 We wouldn't expect much different in mean and median if the mean is used to fill in missing values, so this should be pretty similar to Part 1!
 
-```{r dailyimputed}
+
+```r
 daysums2 <- aggregate(steps ~ date, data = activityFilled, sum)
 meanday <- mean(daysums2$steps)
 medianday <- median(daysums2$steps)
@@ -122,13 +158,14 @@ abline(v = meanday, lwd = 3, lty = 1, col = "blue")
 abline(v = medianday, lwd = 3, lty = 3, col = "red")
 text(14000, 35.5, paste("mean =", round(meanday, digits = 0)), cex = 0.7, col = "blue")
 text(7000, 35.5, paste("median =", round(medianday, digits = 0)), cex = 0.7, col = "red")
-
 ```
 
+![plot of chunk dailyimputed](figure/dailyimputed.png) 
 
-* The mean daily steps taken (ignoring missing values) is `r meanday`.
 
-* The median daily steps taken (ignoring missing values) is `r medianday`.
+* The mean daily steps taken (ignoring missing values) is 10766.
+
+* The median daily steps taken (ignoring missing values) is 10766.
 
 As  seen in comparison to the first plot, the frequency of the 10000-15000 step "bucket" is higher because all of the missing days have fallen in there, median now aligns with the mean (as there are 8 days with that value, falling in the middle of the distribution) and mean has not changed at all (because it was used in imputing). 
 
@@ -137,7 +174,8 @@ As  seen in comparison to the first plot, the frequency of the 10000-15000 step 
 
 The aim here is to show interval means over time for weekdays and weekends. 
 First, days of the week are assigned and a new column in the `activityFilled` dataframe gives a 2-level factor of "weekend" and "weekday". 
-```{r weekdayassignment}
+
+```r
 activityFilled$day <- weekdays(activityFilled$date)
 weekend <- c("Saturday", "Sunday")
 activityFilled$weekday <- character(length = nrow(activityFilled))
@@ -147,17 +185,21 @@ activityFilled <- transform(activityFilled, weekday = factor(weekday))
 ```
 
 The next step is to make a panel plot of a time series plot for averages of steps within 5-minute intervals across weekdays and weekends. This has been done here by aggregation first and then plotting using the `ggplot2` package. 
-```{r weekdaymeans}
+
+```r
 dayMean <- aggregate(steps ~ Starttime + weekday, data = activityFilled, mean)
 ## Create a date format variable for plotting, again.
 dayMean$Time <- as.POSIXct(dayMean$Starttime, format = "%H:%M")
 ```
 The `dayMean` aggregated data are then plotted. 
-```{r weekendvsday}
+
+```r
 library(scales) ## Needed for formatting x axis times
 p <- qplot(Time, steps, facets = weekday~., data=dayMean, geom = "line", ylab = "Average steps", main = "Average steps on Weekdays & Weekends")
 p + scale_x_datetime(breaks = date_breaks("6 hour"), labels = date_format("%H:%M"))
 ```
+
+![plot of chunk weekendvsday](figure/weekendvsday.png) 
 
 As shown on the plot, there is some difference worth investigating between Weekends and Weekdays - the day starts somewhat later and more slowly on the weekends and there is more activity later at night. This makes sense - though it could be useful to define "weekend" as say Friday evening to Sunday evening and investigate, and to do a cumulative daily count. 
 

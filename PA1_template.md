@@ -108,16 +108,31 @@ To work out how the NAs are distributed, I calculated how `NA`s are distributed 
 
 ```r
 missings <- function(x) sum(is.na(x))
-miss2 <- tapply(activity$steps, activity$date, missings)
-table(miss2)
+Datemissings <- tapply(activity$steps, activity$date, missings)
+
+kable(as.data.frame(table(Datemissings)), format = "html")
 ```
 
-miss2
-  0 288 
- 53   8 
-So there are 8 completely missing days and no partly missing days. Probably a software effect as it seems unlikely a person with fitness tracker would have stopped/started it at exactly midnight! 
-
-So we can't impute from neighbouring intervals OR from daily average, so the best (easy) option is to use the average for that interval, similar to previous section. 
+<table>
+ <thead>
+  <tr>
+   <th align="left"> Datemissings </th>
+   <th align="right"> Freq </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td align="left"> 0 </td>
+   <td align="right"> 53 </td>
+  </tr>
+  <tr>
+   <td align="left"> 288 </td>
+   <td align="right"> 8 </td>
+  </tr>
+</tbody>
+</table>
+So there are 8 completely missing days and no partly missing days. 
+That means we can't impute from neighbouring intervals OR from daily average, so the simplest reasonable option is to use the average for that interval, similar to previous section. 
 I looked into whether `mean` or `median` would be better, and found a [handy investigation](http://academic.uprm.edu/eacuna/IFCS04r.pdf) using R, which shows it doesn't really matter. So here `mean` is used. 
 
 3. Actually use the imputation method, create adapted dataset. 
@@ -203,4 +218,8 @@ p + scale_x_datetime(breaks = date_breaks("6 hour"), labels = date_format("%H:%M
 
 As shown on the plot, there is some difference worth investigating between Weekends and Weekdays - the day starts somewhat later and more slowly on the weekends and there is more activity later at night. This makes sense - though it could be useful to define "weekend" as say Friday evening to Sunday evening and investigate, and to do a cumulative daily count. 
 
-## The End. 
+To get the markdown and html format documents, the `knitr` library is used to run the following code:
+
+`knit2html("PA1_template.Rmd")` 
+(not run here, for recursion reasons). 
+
